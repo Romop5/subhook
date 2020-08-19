@@ -89,6 +89,29 @@ struct subhook_jmp64 {
 extern subhook_disasm_handler_t subhook_disasm_handler;
 
 SUBHOOK_EXPORT int SUBHOOK_API subhook_disasm(void *src, int *reloc_op_offset) {
+    
+  /*
+   * Quick fix: skip ENDBR32/EMDBR64
+   * Note: only works for processors, not supporting INTEL CET
+   * or when IBT is not enabled by binary file
+   */
+    
+
+  #ifdef SUBHOOK_X86
+  uint8_t endbrOpcode[] = "\xF3\x0F\x1E\xFB"; // ENDBR32
+  #endif
+  #ifdef SUBHOOK_X86_64
+  uint8_t endbrOpcode[] = "\xF3\x0F\x1E\xFA"; // ENDBR64
+  #endif
+
+  // if ENDBR instruction detected, return succesfully
+  if(strncmp(src, endbrOpcode, 4) == 0)
+  {
+      *reloc_op_offset = 0;
+      return 4;
+  }
+  
+
   enum flags {
     MODRM      = 1,
     PLUS_R     = 1 << 1,
